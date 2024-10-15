@@ -1,3 +1,4 @@
+import os
 from hospital import Hospital
 from persona_factory import PersonasFactory
 
@@ -5,6 +6,27 @@ from persona_factory import PersonasFactory
 class Main:
     def __init__(self):
         self.hospital = Hospital()
+        self.cargar_datos()
+
+    def cargar_datos(self):
+        """Carga datos de pacientes y médicos desde archivos CSV."""
+        # Cargar pacientes
+        if os.path.exists('datos/pacientes.csv'):
+            with open('datos/pacientes.csv', mode='r', encoding='utf-8') as file:
+                for line in file:
+                    identificacion, nombre, celular, correo = line.strip().split(',')
+                    persona = PersonasFactory.crear_persona(
+                        "paciente", identificacion, nombre, celular, correo=correo)
+                    self.hospital.agregar_paciente(persona)
+
+        # Cargar médicos
+        if os.path.exists('datos/medicos.csv'):
+            with open('datos/medicos.csv', mode='r', encoding='utf-8') as file:
+                for line in file:
+                    identificacion, nombre, celular, especialidad = line.strip().split(',')
+                    persona = PersonasFactory.crear_persona(
+                        "medico", identificacion, nombre, celular, especialidad)
+                    self.hospital.agregar_medico(persona)
 
     def mostrar_menu(self):
         while True:
@@ -14,7 +36,10 @@ class Main:
             print("3. Cancelar cita")
             print("4. Asignar médico de preferencia")
             print("5. Ver citas pendientes")
-            print("6. Salir")
+            print("6. Consultar pacientes")
+            print("7. Consultar médicos")
+            print("8. Consultar citas")
+            print("9. Salir")
 
             opcion = input("Seleccione una opción: ")
 
@@ -29,6 +54,12 @@ class Main:
             elif opcion == "5":
                 self.ver_citas_pendientes()
             elif opcion == "6":
+                self.consultar_pacientes()
+            elif opcion == "7":
+                self.consultar_medicos()
+            elif opcion == "8":
+                self.consultar_citas()
+            elif opcion == "9":
                 print("Saliendo del programa...")
                 break
             else:
@@ -138,8 +169,82 @@ class Main:
         else:
             print("Paciente no encontrado.")
 
+    def consultar_pacientes(self):
+        print("\n--- Consultar Pacientes ---")
+        print("1. Buscar paciente por cédula")
+        print("2. Mostrar todos los pacientes")
+        opcion = input("Seleccione una opción (1 o 2): ")
 
-# Iniciar el programa
+        if opcion == "1":
+            id_paciente = self.obtener_dato("Ingrese la cédula del paciente: ")
+            paciente = self.hospital.buscar_paciente(id_paciente)
+            if paciente:
+                print(f"ID: {paciente.id}, Nombre: {paciente.nombre}, Celular: {
+                      paciente.celular}, Correo: {paciente.correo}")
+            else:
+                print("Paciente no encontrado.")
+        elif opcion == "2":
+            if not self.hospital.pacientes:
+                print("No hay pacientes registrados.")
+            else:
+                for paciente in self.hospital.pacientes:
+                    print(f"ID: {paciente.id}, Nombre: {paciente.nombre}, Celular: {
+                          paciente.celular}, Correo: {paciente.correo}")
+        else:
+            print("Opción inválida.")
+
+    def consultar_medicos(self):
+        print("\n--- Consultar Médicos ---")
+        print("1. Buscar médico por cédula")
+        print("2. Mostrar todos los médicos")
+        opcion = input("Seleccione una opción (1 o 2): ")
+
+        if opcion == "1":
+            id_medico = self.obtener_dato("Ingrese la cédula del médico: ")
+            medico = self.hospital.buscar_medico(id_medico)
+            if medico:
+                print(f"ID: {medico.id}, Nombre: {medico.nombre}, Celular: {
+                      medico.celular}, Especialidad: {medico.especialidad}")
+            else:
+                print("Médico no encontrado.")
+        elif opcion == "2":
+            if not self.hospital.medicos:
+                print("No hay médicos registrados.")
+            else:
+                for medico in self.hospital.medicos:
+                    print(f"ID: {medico.id}, Nombre: {medico.nombre}, Celular: {
+                          medico.celular}, Especialidad: {medico.especialidad}")
+        else:
+            print("Opción inválida.")
+
+    def consultar_citas(self):
+        print("\n--- Consultar Citas ---")
+        print("1. Buscar cita por paciente")
+        print("2. Mostrar todas las citas")
+        opcion = input("Seleccione una opción (1 o 2): ")
+
+        if opcion == "1":
+            id_paciente = self.obtener_dato("Ingrese la cédula del paciente: ")
+            paciente = self.hospital.buscar_paciente(id_paciente)
+            if paciente:
+                print("Citas pendientes:")
+                for cita in self.hospital.citas:
+                    if cita['paciente'] == paciente:
+                        print(f"Cita: {
+                              cita['motivo']} - Médico: {cita['medico'].nombre}, Fecha: {cita['fecha']}")
+            else:
+                print("Paciente no encontrado.")
+        elif opcion == "2":
+            if not self.hospital.citas:
+                print("No hay citas registradas.")
+            else:
+                for cita in self.hospital.citas:
+                    print(f"Cita: {cita['motivo']} - Paciente: {cita['paciente'].nombre}, Médico: {
+                          cita['medico'].nombre}, Fecha: {cita['fecha']}")
+        else:
+            print("Opción inválida.")
+
+
 if __name__ == "__main__":
-    main = Main()
-    main.mostrar_menu()
+    app = Main()
+    app.mostrar_menu()

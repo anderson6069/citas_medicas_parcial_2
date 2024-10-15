@@ -4,22 +4,22 @@ class Hospital:
         self.medicos = []
         self.citas = []
 
-    def agregar_medico(self, medico):
-        self.medicos.append(medico)
-
     def agregar_paciente(self, paciente):
         self.pacientes.append(paciente)
 
-    def buscar_medico(self, id_medico):
-        for medico in self.medicos:
-            if medico.identificacion == id_medico:
-                return medico
-        return None
+    def agregar_medico(self, medico):
+        self.medicos.append(medico)
 
     def buscar_paciente(self, id_paciente):
         for paciente in self.pacientes:
-            if paciente.identificacion == id_paciente:
+            if paciente.id == id_paciente:
                 return paciente
+        return None
+
+    def buscar_medico(self, id_medico):
+        for medico in self.medicos:
+            if medico.id == id_medico:
+                return medico
         return None
 
     def agendar_cita(self, paciente, medico, fecha, motivo):

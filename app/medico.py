@@ -9,5 +9,4 @@ class Medico(Persona):
         self.agenda = Agenda()
 
     def verificar_disponibilidad(self, fecha):
-        # Verifica si tiene citas pendientes en la fecha dada
         return fecha not in self.agenda.citas_pendientes
