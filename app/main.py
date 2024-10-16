@@ -1,12 +1,18 @@
 import os
+from rich.console import Console
+from rich.table import Table
+from rich.prompt import Prompt
 from hospital import Hospital
 from persona_factory import PersonasFactory
+
+console = Console()
 
 
 class Main:
     def __init__(self):
         self.hospital = Hospital()
         self.cargar_datos()
+        self.cargar_citas()  # Cargar citas al inicializar
 
     def cargar_datos(self):
         """Carga datos de pacientes y médicos desde archivos CSV."""
@@ -28,20 +34,37 @@ class Main:
                         "medico", identificacion, nombre, celular, especialidad)
                     self.hospital.agregar_medico(persona)
 
+    def cargar_citas(self):
+        """Carga citas desde el archivo CSV."""
+        if os.path.exists('datos/citas.csv'):
+            with open('datos/citas.csv', mode='r', encoding='utf-8') as file:
+                for line in file:
+                    fecha_hora, id_paciente, id_medico = line.strip().split(',')
+                    paciente = self.hospital.buscar_paciente(id_paciente)
+                    medico = self.hospital.buscar_medico(id_medico)
+
+                    if paciente and medico:
+                        self.hospital.agendar_cita(
+                            paciente, medico, fecha_hora, motivo='Cita programada')
+                    else:
+                        console.print(f"[red]Paciente o médico no encontrado para la cita: {
+                                      line.strip()}[/red]")
+
     def mostrar_menu(self):
         while True:
-            print("\n--- Menú ---")
-            print("1. Agregar persona")
-            print("2. Pedir cita")
-            print("3. Cancelar cita")
-            print("4. Asignar médico de preferencia")
-            print("5. Ver citas pendientes")
-            print("6. Consultar pacientes")
-            print("7. Consultar médicos")
-            print("8. Consultar citas")
-            print("9. Salir")
+            console.print("\n--- Menú ---", style="bold underline")
+            console.print("1. Agregar persona")
+            console.print("2. Pedir cita")
+            console.print("3. Cancelar cita")
+            console.print("4. Asignar médico de preferencia")
+            console.print("5. Ver citas pendientes")
+            console.print("6. Consultar pacientes")
+            console.print("7. Consultar médicos")
+            console.print("8. Consultar citas")
+            console.print("9. Salir")
 
-            opcion = input("Seleccione una opción: ")
+            opcion = Prompt.ask("Seleccione una opción", choices=[
+                                "1", "2", "3", "4", "5", "6", "7", "8", "9"])
 
             if opcion == "1":
                 self.agregar_persona()
@@ -60,16 +83,15 @@ class Main:
             elif opcion == "8":
                 self.consultar_citas()
             elif opcion == "9":
-                print("Saliendo del programa...")
+                console.print("Saliendo del programa...", style="bold green")
                 break
-            else:
-                print("Opción inválida.")
 
     def agregar_persona(self):
-        print("\n--- Agregar Persona ---")
-        print("1. Médico")
-        print("2. Paciente")
-        tipo_persona = input("Seleccione el tipo de persona (1 o 2): ")
+        console.print("\n--- Agregar Persona ---", style="bold")
+        console.print("1. Médico")
+        console.print("2. Paciente")
+        tipo_persona = Prompt.ask(
+            "Seleccione el tipo de persona (1 o 2)", choices=["1", "2"])
 
         identificacion = self.obtener_dato("Ingrese la identificación: ")
         nombre = self.obtener_dato("Ingrese el nombre: ")
@@ -80,17 +102,21 @@ class Main:
             persona = PersonasFactory.crear_persona(
                 "medico", identificacion, nombre, celular, especialidad)
             self.hospital.agregar_medico(persona)
+            console.print(
+                f"Médico {nombre} agregado exitosamente.", style="bold green")
         elif tipo_persona == "2":
             correo = self.obtener_dato("Ingrese el correo: ")
             persona = PersonasFactory.crear_persona(
                 "paciente", identificacion, nombre, celular, correo=correo)
             self.hospital.agregar_paciente(persona)
+            console.print(
+                f"Paciente {nombre} agregado exitosamente.", style="bold green")
         else:
-            print(
-                "Tipo de persona inválido. Solo se aceptan opciones 1 (médico) o 2 (paciente).")
+            console.print(
+                "[red]Tipo de persona inválido. Solo se aceptan opciones 1 (médico) o 2 (paciente).[/red]")
 
     def pedir_cita(self):
-        print("\n--- Pedir Cita ---")
+        console.print("\n--- Pedir Cita ---", style="bold")
         id_paciente = self.obtener_dato(
             "Ingrese la identificación del paciente: ")
         id_medico = self.obtener_dato("Ingrese la identificación del médico: ")
@@ -102,44 +128,54 @@ class Main:
 
         if paciente and medico:
             self.hospital.agendar_cita(paciente, medico, fecha, motivo)
-            print("Cita agendada exitosamente.")
+            console.print("Cita agendada exitosamente.", style="bold green")
         else:
-            print("Paciente o médico no encontrado.")
+            console.print("[red]Paciente o médico no encontrado.[/red]")
 
     def obtener_dato(self, mensaje):
         """Solicita un dato al usuario y verifica que no esté vacío."""
         while True:
-            dato = input(mensaje).strip()
+            dato = Prompt.ask(mensaje)
             if dato:
                 return dato
-            print("Este campo es obligatorio y no puede quedar vacío.")
+            console.print(
+                "[red]Este campo es obligatorio y no puede quedar vacío.[/red]")
 
     def cancelar_cita(self):
-        print("\n--- Cancelar Cita ---")
+        console.print("\n--- Cancelar Cita ---", style="bold")
         id_paciente = self.obtener_dato(
             "Ingrese la identificación del paciente: ")
         paciente = self.hospital.buscar_paciente(id_paciente)
 
         if paciente:
-            print("Citas pendientes:")
+            console.print("Citas pendientes:")
+            table = Table(title="Citas Pendientes")
+            table.add_column("Número", justify="right", style="cyan")
+            table.add_column("Motivo", style="magenta")
+            table.add_column("Médico", style="green")
+            table.add_column("Fecha", style="yellow")
+
             for i, cita in enumerate(self.hospital.citas):
                 if cita['paciente'] == paciente:
-                    print(
-                        f"{i + 1}. {cita['motivo']} - Médico: {cita['medico'].nombre}, Fecha: {cita['fecha']}")
+                    table.add_row(
+                        str(i + 1), cita['motivo'], cita['medico'].nombre, cita['fecha'])
 
-            opcion_cita = int(
-                input("Seleccione la cita a cancelar (número): "))
+            console.print(table)
+
+            opcion_cita = int(Prompt.ask(
+                "Seleccione la cita a cancelar (número)"))
             if 1 <= opcion_cita <= len(self.hospital.citas):
                 cita_a_cancelar = self.hospital.citas[opcion_cita - 1]
                 self.hospital.cancelar_cita(cita_a_cancelar)
-                print("Cita cancelada exitosamente.")
+                console.print("Cita cancelada exitosamente.",
+                              style="bold green")
             else:
-                print("Opción inválida.")
+                console.print("[red]Opción inválida.[/red]")
         else:
-            print("Paciente no encontrado.")
+            console.print("[red]Paciente no encontrado.[/red]")
 
     def asignar_medico_preferencia(self):
-        print("\n--- Asignar Médico de Preferencia ---")
+        console.print("\n--- Asignar Médico de Preferencia ---", style="bold")
         id_paciente = self.obtener_dato(
             "Ingrese la identificación del paciente: ")
         id_medico = self.obtener_dato("Ingrese la identificación del médico: ")
@@ -149,100 +185,111 @@ class Main:
 
         if paciente and medico:
             paciente.asignar_medico_preferencia(medico)
-            print(f"Médico {medico.nombre} asignado como preferencia para el paciente {
-                  paciente.nombre}.")
+            console.print(f"Médico {medico.nombre} asignado como preferencia para el paciente {
+                          paciente.nombre}.", style="bold green")
         else:
-            print("Paciente o médico no encontrado.")
+            console.print("[red]Paciente o médico no encontrado.[/red]")
 
     def ver_citas_pendientes(self):
-        print("\n--- Ver Citas Pendientes ---")
+        console.print("\n--- Ver Citas Pendientes ---", style="bold")
         id_paciente = self.obtener_dato(
             "Ingrese la identificación del paciente: ")
         paciente = self.hospital.buscar_paciente(id_paciente)
 
         if paciente:
-            print("Citas pendientes:")
+            console.print("Citas pendientes:")
+            table = Table(title="Citas Pendientes")
+            table.add_column("Motivo", style="magenta")
+            table.add_column("Médico", style="green")
+            table.add_column("Fecha", style="yellow")
+
             for cita in self.hospital.citas:
                 if cita['paciente'] == paciente:
-                    print(f"Cita: {
-                          cita['motivo']} - Médico: {cita['medico'].nombre}, Fecha: {cita['fecha']}")
+                    table.add_row(cita['motivo'],
+                                  cita['medico'].nombre, cita['fecha'])
+
+            console.print(table)
         else:
-            print("Paciente no encontrado.")
+            console.print("[red]Paciente no encontrado.[/red]")
 
     def consultar_pacientes(self):
-        print("\n--- Consultar Pacientes ---")
-        print("1. Buscar paciente por cédula")
-        print("2. Mostrar todos los pacientes")
-        opcion = input("Seleccione una opción (1 o 2): ")
+        console.print("\n--- Consultar Pacientes ---", style="bold")
+        console.print("1. Buscar paciente por cédula")
+        console.print("2. Mostrar todos los pacientes")
+        opcion = Prompt.ask("Seleccione una opción", choices=["1", "2"])
 
         if opcion == "1":
-            id_paciente = self.obtener_dato("Ingrese la cédula del paciente: ")
+            id_paciente = self.obtener_dato(
+                "Ingrese la identificación del paciente: ")
             paciente = self.hospital.buscar_paciente(id_paciente)
             if paciente:
-                print(f"ID: {paciente.id}, Nombre: {paciente.nombre}, Celular: {
-                      paciente.celular}, Correo: {paciente.correo}")
+                console.print(f"[blue]ID:[/blue] {paciente.id} [blue]Nombre:[/blue] {
+                              paciente.nombre} [blue]Celular:[/blue] {paciente.celular} [blue]Correo:[/blue] {paciente.correo}")
             else:
-                print("Paciente no encontrado.")
+                console.print("[red]Paciente no encontrado.[/red]")
         elif opcion == "2":
             if not self.hospital.pacientes:
-                print("No hay pacientes registrados.")
+                console.print("No hay pacientes registrados.")
             else:
+                table = Table(title="Pacientes Registrados")
+                table.add_column("ID", style="cyan")
+                table.add_column("Nombre", style="magenta")
+                table.add_column("Celular", style="green")
+                table.add_column("Correo", style="yellow")
+
                 for paciente in self.hospital.pacientes:
-                    print(f"ID: {paciente.id}, Nombre: {paciente.nombre}, Celular: {
-                          paciente.celular}, Correo: {paciente.correo}")
-        else:
-            print("Opción inválida.")
+                    table.add_row(paciente.id, paciente.nombre,
+                                  paciente.celular, paciente.correo)
+
+                console.print(table)
 
     def consultar_medicos(self):
-        print("\n--- Consultar Médicos ---")
-        print("1. Buscar médico por cédula")
-        print("2. Mostrar todos los médicos")
-        opcion = input("Seleccione una opción (1 o 2): ")
+        console.print("\n--- Consultar Médicos ---", style="bold")
+        console.print("1. Buscar médico por cédula")
+        console.print("2. Mostrar todos los médicos")
+        opcion = Prompt.ask("Seleccione una opción", choices=["1", "2"])
 
         if opcion == "1":
-            id_medico = self.obtener_dato("Ingrese la cédula del médico: ")
+            id_medico = self.obtener_dato(
+                "Ingrese la identificación del médico: ")
             medico = self.hospital.buscar_medico(id_medico)
             if medico:
-                print(f"ID: {medico.id}, Nombre: {medico.nombre}, Celular: {
-                      medico.celular}, Especialidad: {medico.especialidad}")
+                console.print(f"[blue]ID:[/blue] {medico.id} [blue]Nombre:[/blue] {medico.nombre} [blue]Celular:[/blue] {
+                              medico.celular} [blue]Especialidad:[/blue] {medico.especialidad}")
             else:
-                print("Médico no encontrado.")
+                console.print("[red]Médico no encontrado.[/red]")
         elif opcion == "2":
             if not self.hospital.medicos:
-                print("No hay médicos registrados.")
+                console.print("No hay médicos registrados.")
             else:
+                table = Table(title="Médicos Registrados")
+                table.add_column("ID", style="cyan")
+                table.add_column("Nombre", style="magenta")
+                table.add_column("Celular", style="green")
+                table.add_column("Especialidad", style="yellow")
+
                 for medico in self.hospital.medicos:
-                    print(f"ID: {medico.id}, Nombre: {medico.nombre}, Celular: {
-                          medico.celular}, Especialidad: {medico.especialidad}")
-        else:
-            print("Opción inválida.")
+                    table.add_row(medico.id, medico.nombre,
+                                  medico.celular, medico.especialidad)
+
+                console.print(table)
 
     def consultar_citas(self):
-        print("\n--- Consultar Citas ---")
-        print("1. Buscar cita por paciente")
-        print("2. Mostrar todas las citas")
-        opcion = input("Seleccione una opción (1 o 2): ")
-
-        if opcion == "1":
-            id_paciente = self.obtener_dato("Ingrese la cédula del paciente: ")
-            paciente = self.hospital.buscar_paciente(id_paciente)
-            if paciente:
-                print("Citas pendientes:")
-                for cita in self.hospital.citas:
-                    if cita['paciente'] == paciente:
-                        print(f"Cita: {
-                              cita['motivo']} - Médico: {cita['medico'].nombre}, Fecha: {cita['fecha']}")
-            else:
-                print("Paciente no encontrado.")
-        elif opcion == "2":
-            if not self.hospital.citas:
-                print("No hay citas registradas.")
-            else:
-                for cita in self.hospital.citas:
-                    print(f"Cita: {cita['motivo']} - Paciente: {cita['paciente'].nombre}, Médico: {
-                          cita['medico'].nombre}, Fecha: {cita['fecha']}")
+        console.print("\n--- Consultar Citas ---", style="bold")
+        if not self.hospital.citas:
+            console.print("No hay citas registradas.")
         else:
-            print("Opción inválida.")
+            table = Table(title="Citas Registradas")
+            table.add_column("Motivo", style="magenta")
+            table.add_column("Paciente", style="green")
+            table.add_column("Médico", style="yellow")
+            table.add_column("Fecha", style="blue")
+
+            for cita in self.hospital.citas:
+                table.add_row(cita['motivo'], cita['paciente'].nombre,
+                              cita['medico'].nombre, cita['fecha'])
+
+            console.print(table)
 
 
 if __name__ == "__main__":
