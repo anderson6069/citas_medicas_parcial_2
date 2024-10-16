@@ -25,15 +25,6 @@ class Main:
                         "paciente", identificacion, nombre, celular, correo=correo)
                     self.hospital.agregar_paciente(persona)
 
-        # Cargar médicos
-        if os.path.exists('datos/medicos.csv'):
-            with open('datos/medicos.csv', mode='r', encoding='utf-8') as file:
-                for line in file:
-                    identificacion, nombre, celular, especialidad = line.strip().split(',')
-                    persona = PersonasFactory.crear_persona(
-                        "medico", identificacion, nombre, celular, especialidad)
-                    self.hospital.agregar_medico(persona)
-
     def cargar_citas(self):
         """Carga citas desde el archivo CSV."""
         if os.path.exists('datos/citas.csv'):
